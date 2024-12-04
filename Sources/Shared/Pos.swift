@@ -17,6 +17,9 @@ public struct Pos: Hashable, CustomStringConvertible {
         self.x = x
         self.y = y
     }
+
+    public static func x(_ val: Int) -> Self { .init(x: val, y: 0) }
+    public static func y(_ val: Int) -> Self { .init(x: 0, y: val) }
 }
 
 public func +(lhs: Pos, rhs: Pos) -> Pos {
