@@ -33,6 +33,15 @@ public extension Dir {
         }
     }
 
+    var rotatedRight: Dir {
+        switch self {
+        case .left: return .up
+        case .right: return .down
+        case .up: return .right
+        case .down: return .left
+        }
+    }
+
     var rotationDirs: [Dir] {
         switch self {
         case .up, .down: return [.left, .right]

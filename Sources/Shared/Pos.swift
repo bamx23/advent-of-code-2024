@@ -66,4 +66,15 @@ public extension Array {
             self[pos.y][pos.x] = newValue
         }
     }
+
+    func pos<T>(of val: T) -> Optional<Pos> where Element == Array<T>, T: Equatable {
+        for (y, row) in enumerated() {
+            for (x, el) in row.enumerated() {
+                if el == val {
+                    return .init(x: x, y: y)
+                }
+            }
+        }
+        return nil
+    }
 }
