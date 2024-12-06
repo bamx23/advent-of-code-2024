@@ -51,10 +51,19 @@ public extension Pos {
 }
 
 public extension Array {
-    func at<T>(_ pos: Pos) -> Optional<T> where Element == Array<T> {
-        guard 0 <= pos.y && pos.y < count else { return nil }
-        let row = self[pos.y]
-        guard 0 <= pos.x && pos.x < row.count else { return nil }
-        return row[pos.x]
+    subscript<T>(_ pos: Pos) -> Optional<T> where Element == Array<T> {
+        get {
+            guard 0 <= pos.y && pos.y < count else { return nil }
+            let row = self[pos.y]
+            guard 0 <= pos.x && pos.x < row.count else { return nil }
+            return row[pos.x]
+        }
+        set {
+            guard let newValue else { return }
+            guard 0 <= pos.y && pos.y < count else { return }
+            let row = self[pos.y]
+            guard 0 <= pos.x && pos.x < row.count else { return }
+            self[pos.y][pos.x] = newValue
+        }
     }
 }

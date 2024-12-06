@@ -41,7 +41,7 @@ public struct Day04: Day {
                 for dir in searchDirs {
                     var found = true
                     for (idx, ch) in searchWord.enumerated().dropFirst() {
-                        if map.at(pos + dir * idx) != ch {
+                        if map[pos + dir * idx] != ch {
                             found = false
                             break
                         }
@@ -65,12 +65,12 @@ public struct Day04: Day {
                 if map[y][x] != "A" { continue }
                 let pos = Pos(x: x, y: y)
                 let a = Set([
-                    map.at(pos + .init(x: -1, y: -1)),
-                    map.at(pos + .init(x: 1, y: 1))
+                    map[pos + .init(x: -1, y: -1)],
+                    map[pos + .init(x: 1, y: 1)]
                 ])
                 let b = Set([
-                    map.at(pos + .init(x: 1, y: -1)),
-                    map.at(pos + .init(x: -1, y: 1))
+                    map[pos + .init(x: 1, y: -1)],
+                    map[pos + .init(x: -1, y: 1)]
                 ])
                 if a == b && a == expected { count += 1 }
             }
