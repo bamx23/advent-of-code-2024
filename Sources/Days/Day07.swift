@@ -7,6 +7,7 @@
 
 import Foundation
 import Shared
+import os
 
 public struct Day07: Day {
     static public let number = 7
@@ -38,7 +39,7 @@ public struct Day07: Day {
     
     public func part01() -> String {
         let result = parse()
-            .filter(\.isPossiblePart1)
+            .parallelCompactMap { $0.isPossiblePart1 ? $0 : nil }
             .map(\.target)
             .reduce(0, +)
         return "\(result)"
@@ -46,7 +47,7 @@ public struct Day07: Day {
     
     public func part02() -> String {
         let result = parse()
-            .filter(\.isPossiblePart2)
+            .parallelCompactMap { $0.isPossiblePart2 ? $0 : nil }
             .map(\.target)
             .reduce(0, +)
         return "\(result)"
