@@ -77,4 +77,22 @@ public extension Array {
         }
         return nil
     }
+
+    func iterPoses<T>(_ proc: (Pos, T) -> Void) where Element == Array<T> {
+        for (y, row) in enumerated() {
+            for (x, el) in row.enumerated() {
+                proc(.init(x: x, y: y), el)
+            }
+        }
+    }
+
+    func iterPoses<T>(around center: Pos, allowDiagonal: Bool, proc: (Pos, T) -> Void) where Element == Array<T> {
+        let deltas: [Pos] = Dir.allCases.map(\.delta)
+        + (allowDiagonal ? [.init(x: -1, y: -1), .init(x: 1, y: 1), .init(x: -1, y: 1), .init(x: 1, y: -1)] : [])
+        for delta in deltas {
+            let pos = center + delta
+            guard let val = self[pos] else { continue }
+            proc(pos, val)
+        }
+    }
 }
