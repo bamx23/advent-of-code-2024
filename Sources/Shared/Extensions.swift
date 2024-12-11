@@ -8,12 +8,19 @@
 import Foundation
 import os
 
+private struct ParallelState<IndexType, ValueType> {
+    var nextIdx: IndexType
+    var nextRIdx: Int
+    var result: [Optional<ValueType>]
+}
+
 public extension Collection {
     func parallelCompactMap<T>(maxThreads: Int = 8, _ proc: @escaping (Element) -> Optional<T>) -> [T] {
-        var lock = OSAllocatedUnfairLock()
-        var nextIdx = self.startIndex
-        var nextRIdx = 0
-        var result: [Optional<T>] = .init(repeating: nil, count: count)
+        let stateLock = OSAllocatedUnfairLock(initialState: ParallelState<Self.Index, T>(
+            nextIdx: self.startIndex,
+            nextRIdx: 0,
+            result: .init(repeating: nil, count: count)
+        ))
 
         let queue = DispatchQueue(label: "parallelCompactMap", qos: .userInitiated, attributes: [.concurrent])
         let group = DispatchGroup()
@@ -21,14 +28,14 @@ public extension Collection {
             group.enter()
             queue.async {
                 while true {
-                    let (idx, rIdx) = lock.withLock {
-                        if nextIdx == self.endIndex {
+                    let (idx, rIdx) = stateLock.withLock { state in
+                        if state.nextIdx == self.endIndex {
                             return (self.endIndex, 0)
                         }
-                        let idx = nextIdx
-                        let rIdx = nextRIdx
-                        nextIdx = self.index(after: nextIdx)
-                        nextRIdx += 1
+                        let idx = state.nextIdx
+                        let rIdx = state.nextRIdx
+                        state.nextIdx = self.index(after: state.nextIdx)
+                        state.nextRIdx += 1
                         return (idx, rIdx)
                     }
                     if idx == self.endIndex {
@@ -36,13 +43,15 @@ public extension Collection {
                         return
                     }
                     let val = proc(self[idx])
-                    lock.withLock {
-                        result[rIdx] = val
+                    stateLock.withLock {
+                        $0.result[rIdx] = val
                     }
                 }
             }
         }
         group.wait()
-        return result.compactMap { $0 }
+        return stateLock
+            .withLock { $0.result }
+            .compactMap { $0 }
     }
 }

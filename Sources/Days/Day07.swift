@@ -7,7 +7,6 @@
 
 import Foundation
 import Shared
-import os
 
 public struct Day07: Day {
     static public let number = 7
