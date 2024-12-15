@@ -48,4 +48,18 @@ public extension Dir {
         case .left, .right: return [.up, .down]
         }
     }
+
+    var isHorizontal: Bool {
+        switch self {
+        case .left, .right: return true
+        default: return false
+        }
+    }
+
+    var isVertical: Bool {
+        switch self {
+        case .up, .down: return true
+        default: return false
+        }
+    }
 }

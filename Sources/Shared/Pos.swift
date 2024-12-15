@@ -35,6 +35,11 @@ public func -(lhs: Pos, rhs: Pos) -> Pos {
     .init(x: lhs.x - rhs.x, y: lhs.y - rhs.y)
 }
 
+public func -=(lhs: inout Pos, rhs: Pos) {
+    lhs.x -= rhs.x
+    lhs.y -= rhs.y
+}
+
 public func *(lhs: Pos, rhs: Int) -> Pos {
     .init(x: lhs.x * rhs, y: lhs.y * rhs)
 }
@@ -103,5 +108,17 @@ public extension Array {
             guard let val = self[pos] else { continue }
             proc(pos, val)
         }
+    }
+
+    func mapPoses<T,R>(_ proc: (Pos, T) -> Optional<R>) -> Array<R> where Element == Array<T> {
+        var result = [R]()
+        for (y, row) in enumerated() {
+            for (x, el) in row.enumerated() {
+                if let val = proc(.init(x: x, y: y), el) {
+                    result.append(val)
+                }
+            }
+        }
+        return result
     }
 }
