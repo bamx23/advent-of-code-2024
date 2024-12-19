@@ -26,13 +26,13 @@ public struct Day18: Day {
             }
     }
 
-    private func dfs(walls: Set<Pos>, size: Int) -> Int? {
+    private func dfs(walls: Set<Pos>, size: Int, shouldContinue: () -> Bool) -> Int? {
         let start = Pos(x: 0, y: 0)
         let end = Pos(x: size - 1, y: size - 1)
         var visited: Set<Pos> = walls
         visited.insert(start)
         var queue: [(Int, Pos)] = [(0, start)]
-        while !queue.isEmpty {
+        while !queue.isEmpty && shouldContinue() {
             let (len, pos) = queue.removeFirst()
             if pos == end {
                 return len
@@ -54,24 +54,22 @@ public struct Day18: Day {
         ? (7, 12) // Sample
         : (71, 1024) // Task
 
-        return "\(dfs(walls: Set(bytes.prefix(steps)), size: size) ?? 0)"
+        return "\(dfs(walls: Set(bytes.prefix(steps)), size: size, shouldContinue: { true }) ?? 0)"
     }
     
     public func part02() -> String {
         let bytes = parse()
         let size = bytes.count < 30 ? 7 : 1024
 
-        var (lIdx, rIdx) = (0, bytes.count)
-        while lIdx < rIdx {
-            let mid = (lIdx + rIdx) / 2
-            if dfs(walls: Set(bytes.prefix(mid + 1)), size: size) == nil {
-                rIdx = mid
-            } else {
-                lIdx = mid + 1
+        let idx = Array(0..<bytes.count)
+            .parallelBinarySearch(maxThreads: 6) { mid, tok in
+                dfs(walls: Set(bytes.prefix(mid + 1)), size: size, shouldContinue: { !tok.isCanceled }) == nil
+                ? .orderedDescending
+                : .orderedAscending
             }
-        }
 
-        let byte = bytes[lIdx]
+        guard let idx else { return "No solution" }
+        let byte = bytes[idx]
         return "\(byte.x),\(byte.y)"
     }
 }
