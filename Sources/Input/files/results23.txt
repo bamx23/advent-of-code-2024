@@ -1,0 +1,5 @@
+P1_S01: 7
+P1_T:   1227
+
+P2_S01: co,de,ka,ta
+P2_T:   cl,df,ft,ir,iy,ny,qp,rb,sh,sl,sw,wm,wy
