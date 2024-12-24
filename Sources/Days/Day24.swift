@@ -89,108 +89,86 @@ public struct Day24: Day {
         return "\(result)"
     }
 
-    private func genInput(bitsCount: Int, randGen: inout RandomNumberGenerator) -> ([String: Int], [Int]) {
-        var (x, y) = (
-            (0..<(1 << bitsCount)).randomElement(using: &randGen)!,
-            (0..<(1 << bitsCount)).randomElement(using: &randGen)!
-        )
-        var z = x + y
-        var wires: [String: Int] = [:]
-        var result: [Int] = []
-        for idx in 0..<bitsCount {
-            wires[String(format: "x%02d", idx)] = x & 1
-            wires[String(format: "y%02d", idx)] = y & 1
-            result.append(z & 1)
-            x >>= 1
-            y >>= 1
-            z >>= 1
+    public func part02() -> String {
+        let (_, gates) = parse()
+
+        if gates.count < 50 {
+            // This solution doesn't work for sample
+            return "-"
         }
-        result.append(z & 1)
-        return (wires, result)
+
+        var idx = 1
+        var caryVal = gates.first(where: { $0.op == .and && $0.hasInputs("x00", "y00") })!.result
+
+        var swaps: [String] = []
+        while caryVal.hasPrefix("z") == false {
+            let (xVal, yVal, zVal) = (String(format: "x%02d", idx), String(format: "y%02d", idx), String(format: "z%02d", idx))
+
+            var v1 = gates.first(where: { $0.op == .xor && $0.hasInputs(xVal, yVal) })!
+            var c1 = gates.first(where: { $0.op == .and && $0.hasInputs(xVal, yVal) })!
+            var zGate = gates.first(where: { $0.op == .xor && $0.hasInput(caryVal) })!
+            var c2 = gates.first(where: { $0.op == .and && $0.hasInput(caryVal) })!
+
+            let v1Val = Set([zGate.lhs, zGate.rhs]).subtracting([caryVal]).first!
+            let cVals = Set([v1.result, c1.result, zGate.result, c2.result]).subtracting([zVal, v1Val])
+            var cGate = gates.first(where: { $0.op == .or && cVals.contains($0.lhs) && cVals.contains($0.rhs) })!
+
+            let swap = { (a: String, b: String) in
+                if v1.result == a { v1.result = b }
+                if c1.result == a { c1.result = b }
+                if zGate.result == a { zGate.result = b }
+                if c2.result == a { c2.result = b }
+                if cGate.result == a { cGate.result = b }
+            }
+
+            if v1.result != v1Val {
+                swaps.append(contentsOf: [v1.result, v1Val])
+                swap(v1Val, v1.result)
+                v1.result = v1Val
+            } else if zGate.result != zVal {
+                swaps.append(contentsOf: [zGate.result, zVal])
+                swap(zVal, zGate.result)
+                zGate.result = zVal
+            } else if c1.result != cGate.lhs && c1.result != cGate.rhs {
+                let c1Val = cGate.otherOnput(c2.result)
+                swaps.append(contentsOf: [c1.result, c1Val])
+                swap(c1Val, c1.result)
+                c1.result = c1Val
+            } else if c2.result != cGate.lhs && c2.result != cGate.rhs {
+                let c2Val = cGate.otherOnput(c1.result)
+                swaps.append(contentsOf: [c2.result, c2Val])
+                swap(c2Val, c2.result)
+                c2.result = c2Val
+            }
+
+            caryVal = cGate.result
+            idx += 1
+        }
+
+        let result = swaps.sorted().joined(separator: ",")
+        return "\(result)"
+    }
+}
+
+private extension Day24.Gate {
+    func hasInput(_ a: String) -> Bool {
+        lhs == a || rhs == a
     }
 
-    public func part02() -> String {
-        let (wiresInit, gates) = parse()
-        let bitsCount = wiresInit.count / 2
-        var randGen: any RandomNumberGenerator = SplitMix64RandomNumberGenerator(seed: 23)
+    func hasInputs(_ a: String, _ b: String) -> Bool {
+        (lhs == a && rhs == b)
+        || (lhs == b && rhs == a)
+    }
 
-        let calcSamples = (0..<1000).map { _ in genInput(bitsCount: bitsCount, randGen: &randGen) }
-        let bestScore = calcSamples.count * (bitsCount + 1)
-        var bestSwap: [Int]
-        var population = (0..<100).map { _ in
-            var indices = [Int]()
-            while indices.count != 8 {
-                var next = (0..<gates.count).randomElement(using: &randGen)!
-                while indices.contains(next) {
-                    next = (0..<gates.count).randomElement(using: &randGen)!
-                }
-                indices.append(next)
-            }
-            return indices
-        }
-        var popIdx = 0
-        while true {
-            let scored = population
-                .parallelCompactMap { indices in
-                    var gates = gates
-                    for idx in 0..<4 {
-                        let (a, b) = (indices[idx * 2], indices[idx * 2 + 1])
-                        (gates[a].result, gates[b].result) = (gates[b].result, gates[a].result)
-                    }
+    func otherOnput(_ a: String) -> String {
+        if lhs == a { return rhs }
+        return lhs
+    }
 
-                    var score = 0
-                    for (wires, expectedResult) in calcSamples {
-                        guard let curResult = calc(wires: wires, gates: gates) else {
-                            score = 0
-                            break
-                        }
-                        score += zip(curResult, expectedResult).count(where: { $0 == $1 })
-                    }
-                    return (val: indices, score: score)
-                }
-                .sorted(by: { $0.score > $1.score })
-            if let best = scored.first {
-                if best.score == bestScore {
-                    bestSwap = best.val
-                    break
-                }
-                if popIdx % 10 == 0 {
-                    print("\(popIdx) best score: \(best.score)")
-                }
-            }
-            let top = scored
-                .prefix(20)
-                .map(\.val)
-            let mutated = top.map { indices in
-                var indices = indices
-                for j in 0..<indices.count {
-                    if (0..<99).randomElement(using: &randGen)! < 20 {
-                        var other = indices[j]
-                        while indices.contains(other) {
-                            other = (0..<gates.count).randomElement(using: &randGen)!
-                        }
-                        indices[j] = other
-                    }
-                }
-                return indices
-            }
-            let merged = zip(
-                top.shuffled(using: &randGen),
-                top.shuffled(using: &randGen)
-            ).map { (lhsIds, rhsIds) in
-                zip(lhsIds, rhsIds).map { (lhs, rhs) in
-                    Bool.random(using: &randGen) ? lhs : rhs
-                }
-            }
-            population = top + mutated + merged
-            popIdx += 1
-        }
-
-        let result = bestSwap
-            .map { gates[$0].result }
-            .sorted()
-            .joined(separator: ",")
-        return "\(result)"
+    mutating func swapResult(_ val: String) -> String {
+        let x = result
+        result = val
+        return x
     }
 }
 
